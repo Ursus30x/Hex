@@ -8,58 +8,103 @@ struct outputs{
     int redPawns;
     int bluePawns;
     bool isCorrect;
-    bool isGameOver;
-    bool isBoardPossible;
-    bool canRedWin1Naive;
-    bool canBlueWin1Naive;
-    bool canRedWin2Naive;
-    bool canBlueWin2Naive;
-    bool canRedWin1Perfect;
-    bool canBlueWin1Perfect;
-    bool canRedWin2Perfect;
-    bool canBlueWin2Perfect;
 
     void initOutputs(){
         size = 0;
         redPawns = 0;
         bluePawns = 0;
         isCorrect = false;
-        isGameOver = false;
-        isBoardPossible = false;
-        canRedWin1Naive = false;
-        canBlueWin1Naive = false;
-        canRedWin2Naive = false;
-        canBlueWin2Naive = false;
-        canRedWin1Perfect = false;
-        canBlueWin1Perfect = false;
-        canRedWin2Perfect = false;
-        canBlueWin2Perfect = false;
     }
 };
 
+char board[10][10];
+bool visited[10][10];
+outputs out;
 
-void checkBufferForQueries(char * buffer,outputs &out){
-    //printf("%s\n",buffer);
-    if(strcmp(buffer,"BOARD_SIZE\0") == 0){
+bool checkIfWon(char team,int x,int y){
+    visited[x][y]=true;
+    if(y==out.size-1 && team == 'r'){
+        return true;
+    }
+    else if(x == out.size-1 && team == 'b'){
+        return true;
+    }
+    else{
+        for(int i = -1;i<=1;i++){
+            for(int j = -1;j<=1;j++){
+                if( 0<=x+i && x+i<out.size
+                &&  0<=y+j && y+j<out.size
+                &&  i != -1*j
+                &&  board  [x+i][y+j] == team
+                && !visited[x+i][y+j]){
+                    if(checkIfWon(team,x+i,y+j))return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+#define BOARD_LEN strlen("BOARD_SIZE")
+#define PAWNS_LEN strlen("PAWNS_NUMBER")
+#define CORRECT_LEN strlen("IS_BOARD_CORRECT")
+
+void checkBufferForQueries(char * buffer){
+    if(strncmp(buffer,"BOARD_SIZE",BOARD_LEN) == 0){
         printf("%d\n",out.size);
     }
-    else if(strcmp(buffer,"PAWNS_NUMBER\0") == 0){
+    else if(strncmp(buffer,"PAWNS_NUMBER",PAWNS_LEN) == 0){
         printf("%d\n",out.redPawns + out.bluePawns);
     }
-    else if(strcmp(buffer,"IS_BOARD_CORRECT\0") == 0){
+    else if(strncmp(buffer,"IS_BOARD_CORRECT",CORRECT_LEN) == 0){
         int diff = out.redPawns - out.bluePawns;
-        if(diff == 1 || diff == 0)printf("YES\n");
-        else printf("NO\n");
+        if(diff == 1 || diff == 0){
+            out.isCorrect = true;
+            printf("YES\n");
+        }
+        else{
+            out.isCorrect = false;
+            printf("NO\n");
+        } 
+    }
+    else if(strcmp(buffer,"IS_GAME_OVER\0") == 0){
+        int diff = out.redPawns - out.bluePawns;
+        if(diff == 1 || diff == 0){
+            out.isCorrect = true;
+        }
+        else{
+            out.isCorrect = false;
+        } 
+        if(out.isCorrect == false){
+            printf("NO\n\n");
+            return;
+        }
+        for(int i = 0;i<out.size-1;i++){
+            if(board[i][0] == 'r'){
+                if(checkIfWon('r',i,0)){
+                    printf("YES RED\n\n");
+                    return;
+                }
+            
+            }
+            if(board[0][i] == 'b'){
+                if(checkIfWon('b',0,i)){
+                    printf("YES BLUE\n\n");
+                    return;
+                }
+            }
+        }
+        printf("NO\n");
     }
     printf("\n");
 }
 
 int main(){
-    outputs out;
+    
     out.initOutputs();
-    char board[10][10] = {""};
+    
     char key = 'p';
-    char buffer[1000] = "";
+    char buffer[300] = "";
     char fieldPawns[11];
     fieldPawns[10]='\0';
     int i = 0;
@@ -75,6 +120,12 @@ int main(){
                 if(buffer[j] == '-' && buffer[j+1] == '-' && buffer[j+2] == '-') {
                     if(parsingBoard == true)parsingBoard=false;
                     else{
+                        for(int n = 0;n<out.size;n++){
+                            for(int k = 0;k<out.size;k++){
+                                board[n][k] = ' ';
+                                visited[n][k] = false;
+                            }
+                        }
                         parsingBoard = true;
                         counter = 0;
                         out.initOutputs();
@@ -93,7 +144,9 @@ int main(){
                         board[counter-j-1][j] = fieldPawns[j];
 
                     }
+                    //printf("%d\n",counter);
                     out.size = counter;
+                    //printf("%d\n",out.size);
                 }
                 else if(counter <= (out.size*2)-1){  
                     int temp = counter % out.size;
@@ -111,13 +164,14 @@ int main(){
                 //     }
                 //     printf("\n");
                 // }
-                checkBufferForQueries(buffer,out);
+                checkBufferForQueries(buffer);
             }            
             for(int j = 0;j<11;j++){
                 fieldPawns[j]='\0';
             }
             counter++;
             i=0;
+            memset(buffer,'\0',10000);
         }
         else{
             buffer[i++] = key;
