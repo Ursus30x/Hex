@@ -2,6 +2,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include "Stack.h"
+
+struct coords{
+    int x;
+    int y;
+};
 
 struct outputs{
     int size;
@@ -17,19 +23,26 @@ struct outputs{
     }
 };
 
-char board[10][10];
-bool visited[10][10];
+char board[12][12];
+bool visited[12][12];
 outputs out;
 
-bool checkIfWon(char team,int x,int y){
-    visited[x][y]=true;
-    if(y==out.size-1 && team == 'r'){
-        return true;
-    }
-    else if(x == out.size-1 && team == 'b'){
-        return true;
-    }
-    else{
+int checkIfWon(char team,int x,int y){
+    Stack <coords> stos;
+    int wins = 0;
+    stos.push({x,y}); 
+    while(!stos.empty()){
+        x = stos.top().x;
+        y = stos.top().y;
+        visited[x][y] = true;
+        stos.pop();
+        //printf("Looking at: %d %d\n",x,y);
+        if(y==out.size-1 && team == 'r'){
+            wins++;
+        }
+        else if(x == out.size-1 && team == 'b'){
+            wins++;
+        }
         for(int i = -1;i<=1;i++){
             for(int j = -1;j<=1;j++){
                 if( 0<=x+i && x+i<out.size
@@ -37,12 +50,12 @@ bool checkIfWon(char team,int x,int y){
                 &&  i != -1*j
                 &&  board  [x+i][y+j] == team
                 && !visited[x+i][y+j]){
-                    if(checkIfWon(team,x+i,y+j))return true;
+                    stos.push({x+i,y+j});
                 }
             }
-        }
+        } 
     }
-    return false;
+    return wins;
 }
 
 #define BOARD_LEN strlen("BOARD_SIZE")
@@ -57,29 +70,15 @@ void checkBufferForQueries(char * buffer){
         printf("%d\n",out.redPawns + out.bluePawns);
     }
     else if(strncmp(buffer,"IS_BOARD_CORRECT",CORRECT_LEN) == 0){
-        int diff = out.redPawns - out.bluePawns;
-        if(diff == 1 || diff == 0){
-            out.isCorrect = true;
-            printf("YES\n");
-        }
-        else{
-            out.isCorrect = false;
-            printf("NO\n");
-        } 
+        if(out.isCorrect)printf("YES\n");
+        else printf("NO"\n)
     }
     else if(strcmp(buffer,"IS_GAME_OVER\0") == 0){
-        int diff = out.redPawns - out.bluePawns;
-        if(diff == 1 || diff == 0){
-            out.isCorrect = true;
-        }
-        else{
-            out.isCorrect = false;
-        } 
         if(out.isCorrect == false){
             printf("NO\n\n");
             return;
         }
-        for(int i = 0;i<out.size-1;i++){
+        for(int i = 0;i<out.size;i++){
             if(board[i][0] == 'r'){
                 if(checkIfWon('r',i,0)){
                     printf("YES RED\n\n");
@@ -118,7 +117,13 @@ int main(){
             int fields = 0;
             for(int j = 0;j<=i-2;j++){
                 if(buffer[j] == '-' && buffer[j+1] == '-' && buffer[j+2] == '-') {
-                    if(parsingBoard == true)parsingBoard=false;
+                    if(parsingBoard == true){
+                        parsingBoard=false;
+                        int diff = out.redPawns - out.bluePawns;
+                        if(diff == 1 || diff == 0)out.isCorrect = true;
+                        else out.isCorrect = false;
+                            
+                    }
                     else{
                         for(int n = 0;n<out.size;n++){
                             for(int k = 0;k<out.size;k++){
@@ -171,7 +176,7 @@ int main(){
             }
             counter++;
             i=0;
-            memset(buffer,'\0',10000);
+            memset(buffer,'\0',300);
         }
         else{
             buffer[i++] = key;
