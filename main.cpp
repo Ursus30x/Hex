@@ -14,53 +14,142 @@ struct outputs{
     int redPawns;
     int bluePawns;
     bool isCorrect;
+    bool redWon;
+    bool blueWon;
+    bool isPossible;
 
     void initOutputs(){
         size = 0;
         redPawns = 0;
         bluePawns = 0;
         isCorrect = false;
+        redWon = false;
+        blueWon = false;
+        isPossible = false;
     }
 };
 
 char board[12][12];
 bool visited[12][12];
+bool winning[12][12];
 outputs out;
 
-int checkIfWon(char team,int x,int y){
-    Stack <coords> stos;
-    int wins = 0;
-    stos.push({x,y}); 
-    while(!stos.empty()){
-        x = stos.top().x;
-        y = stos.top().y;
-        visited[x][y] = true;
-        stos.pop();
-        //printf("Looking at: %d %d\n",x,y);
-        if(y==out.size-1 && team == 'r'){
-            wins++;
+void clearVisited(){
+    for(int i = 0;i<12;i++){
+        for(int j = 0;j<12;j++){
+            visited[i][j] = false;
         }
-        else if(x == out.size-1 && team == 'b'){
-            wins++;
+    }
+}
+
+bool checkIfWon(char team,int x,int y){
+    visited[x][y] = true;
+    //if(team == 'b')printf("Looking at: %d %d\n",x,y,team);
+    if(y==out.size-1 && team == 'r'){
+        
+        return true;
+    }
+    else if(x == out.size-1 && team == 'b'){
+        //printf("%d %d gowno\n",x,y);
+        //printf("wtf\n");
+        return true;
+    }
+    for(int i = -1;i<=1;i++){
+        for(int j = -1;j<=1;j++){
+            if( 0<=x+i && x+i<out.size
+            &&  0<=y+j && y+j<out.size
+            &&  i != -1*j
+            &&  board  [x+i][y+j] == team
+            && !visited[x+i][y+j]
+            && !winning[x+i][y+j]){
+                if(checkIfWon(team,x+i,y+j))return true;
+            }
         }
-        for(int i = -1;i<=1;i++){
-            for(int j = -1;j<=1;j++){
-                if( 0<=x+i && x+i<out.size
-                &&  0<=y+j && y+j<out.size
-                &&  i != -1*j
-                &&  board  [x+i][y+j] == team
-                && !visited[x+i][y+j]){
-                    stos.push({x+i,y+j});
+    } 
+    //printf("%d %d pierdaken\n",x,y);
+    return false;
+}
+
+bool checkWinsRed(){
+    for(int i = 0;i<out.size;i++){
+        if(board[i][0] == 'r'  && !winning[i][0]){
+            if(checkIfWon('r',i,0)){
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool checkWinsBlue(){
+    for(int i = 0;i<out.size;i++){
+        if(board[0][i] == 'b'  && !winning[0][i]){
+            if(checkIfWon('b',0,i)){
+                //printf("GOOOOOWNO\n");
+                return true;
+            }
+        }
+    }
+    //printf("O TO TU CHODZI KURWA\n");
+    return false;
+}
+
+void checkWins(){
+    out.blueWon = checkWinsBlue();
+    out.redWon = checkWinsRed();
+}
+
+void checkIfPossible(){
+    //printf("sraken\n");
+    out.isPossible = true;
+    if(out.isCorrect == false
+    || (out.redPawns > out.bluePawns && out.blueWon)
+    ){
+        out.isPossible = false;
+    }
+    else if(out.blueWon){
+        for(int i = 0;i<out.size;i++){
+            for(int j = 0;j<out.size;j++){
+                if(board[i][j] == 'b'){
+                    //printf("\n");
+                    clearVisited();
+                    winning[i][j] = true;
+                    if(checkWinsBlue() == false){
+                        //printf("he?\n");
+                        out.isPossible = true;
+                        return;
+                    }
+                    winning[i][j] = false;
                 }
             }
-        } 
+        }
+        out.isPossible =  false;
     }
-    return wins;
+    else if(out.redWon){
+        for(int i = 0;i<out.size;i++){
+            for(int j = 0;j<out.size;j++){
+                if(board[i][j] == 'r'){
+                    
+                    clearVisited();
+                    winning[i][j] = true;
+                    if(checkWinsRed() == false){
+                        out.isPossible = true;
+                        return;
+                    }
+                    winning[i][j] = false;
+                }
+            }
+        }
+        out.isPossible = false;
+    }
+   
 }
 
 #define BOARD_LEN strlen("BOARD_SIZE")
 #define PAWNS_LEN strlen("PAWNS_NUMBER")
 #define CORRECT_LEN strlen("IS_BOARD_CORRECT")
+#define OVER_LEN strlen("IS_GAME_OVER")
+#define POSSIBLE_LEN strlen("IS_BOARD_POSSIBLE")
 
 void checkBufferForQueries(char * buffer){
     if(strncmp(buffer,"BOARD_SIZE",BOARD_LEN) == 0){
@@ -71,29 +160,17 @@ void checkBufferForQueries(char * buffer){
     }
     else if(strncmp(buffer,"IS_BOARD_CORRECT",CORRECT_LEN) == 0){
         if(out.isCorrect)printf("YES\n");
-        else printf("NO"\n)
+        else printf("NO\n");
     }
-    else if(strcmp(buffer,"IS_GAME_OVER\0") == 0){
-        if(out.isCorrect == false){
-            printf("NO\n\n");
-            return;
-        }
-        for(int i = 0;i<out.size;i++){
-            if(board[i][0] == 'r'){
-                if(checkIfWon('r',i,0)){
-                    printf("YES RED\n\n");
-                    return;
-                }
-            
-            }
-            if(board[0][i] == 'b'){
-                if(checkIfWon('b',0,i)){
-                    printf("YES BLUE\n\n");
-                    return;
-                }
-            }
-        }
-        printf("NO\n");
+    else if(strncmp(buffer,"IS_GAME_OVER",OVER_LEN) == 0){
+        if(out.isCorrect == false)  printf("NO\n");
+        else if(out.redWon)printf("YES RED\n");
+        else if(out.blueWon)printf("YES BLUE\n");
+        else printf("NO\n");
+    }
+    else if(strncmp(buffer,"IS_BOARD_POSSIBLE",POSSIBLE_LEN) == 0){
+        if(out.isPossible)printf("YES\n");
+        else printf("NO\n");
     }
     printf("\n");
 }
@@ -122,13 +199,15 @@ int main(){
                         int diff = out.redPawns - out.bluePawns;
                         if(diff == 1 || diff == 0)out.isCorrect = true;
                         else out.isCorrect = false;
-                            
+                        checkWins();
+                        checkIfPossible();
                     }
                     else{
                         for(int n = 0;n<out.size;n++){
                             for(int k = 0;k<out.size;k++){
                                 board[n][k] = ' ';
                                 visited[n][k] = false;
+                                winning[n][k] = false;
                             }
                         }
                         parsingBoard = true;
