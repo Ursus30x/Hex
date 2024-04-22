@@ -104,6 +104,7 @@ void checkIfPossible(){
     out.isPossible = true;
     if(out.isCorrect == false
     || (out.redPawns > out.bluePawns && out.blueWon)
+    || (out.redPawns == out.bluePawns && out.redWon)
     ){
         out.isPossible = false;
     }
@@ -133,6 +134,7 @@ void checkIfPossible(){
                     clearVisited();
                     winning[i][j] = true;
                     if(checkWinsRed() == false){
+                        //printf("gowno\n");
                         out.isPossible = true;
                         return;
                     }
@@ -169,6 +171,7 @@ void checkBufferForQueries(char * buffer){
         else printf("NO\n");
     }
     else if(strncmp(buffer,"IS_BOARD_POSSIBLE",POSSIBLE_LEN) == 0){
+        //printf("r:%d b:%d \n",out.redPawns,out.bluePawns);
         if(out.isPossible)printf("YES\n");
         else printf("NO\n");
     }
