@@ -7,6 +7,7 @@
 #define MAX_SIZE 12  // +1 jako bufor
 #define BUFF_SIZE 200
 #define MAX_HEIGHT (out.size * 2) - 1
+#define IN_BOUNDS (0 <= x + i && x + i < size && 0 <= y + j && y + j < size && i != -1 * j)
 
 #define BOARD_MEM_SIZE_BOOL MAX_SIZE* MAX_SIZE * sizeof(bool)
 #define BOARD_MEM_SIZE_CHAR MAX_SIZE* MAX_SIZE * sizeof(char)
@@ -57,3 +58,35 @@ struct outputs {
         naive[3] = false;
     }
 };
+
+void copyBoard(int dest[MAX_SIZE][MAX_SIZE], int src[MAX_SIZE][MAX_SIZE]){
+    for(int i = 0;i<MAX_SIZE;i++){
+        for(int j = 0;j<MAX_SIZE;j++){
+            dest[i][j] = src[i][j];
+        }
+    }
+}
+
+void clearVisited(bool src[MAX_SIZE][MAX_SIZE]){
+    for(int i = 0;i<MAX_SIZE;i++){
+        for(int j = 0;j<MAX_SIZE;j++){
+            src[i][j] = false;
+        }
+    }
+}
+
+void printBoard(int src[12][12], int& size) {
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < size; j++) {
+            if (src[i][j] == Empty) {
+                printf("*");
+            } else if (src[i][j] == Red) {
+                printf("r");
+            } if (src[i][j] == Blue) {
+                printf("b");
+            } 
+        }
+        printf("\n");
+    }
+    printf("\n");
+}
